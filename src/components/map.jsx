@@ -1,28 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { useLoadScript, GoogleMap, Marker, InfoWindow, Polygon } from '@react-google-maps/api';
-import { locations, polygons } from "../api/fakeApi.js";
 
-// Maps settings. Width and height must be defined
-const libraries = ["places"];
-const mapContainerStyle = {
-   width: "100vw",
-   height: "100vh"
-};
-const defaultCenter = {
-   lat: -33.489524621879774, lng: -70.67266277454323
-};
-
-export const MapContainer = () => {
-   const API_KEY = process.env.REACT_APP_API_KEY;
+export const MapContainer = ({ apiKey, locations, polygons }) => {
+   const libraries = ["places"];
+   const mapContainerStyle = {
+      width: "100vw",
+      height: "100vh"
+   };
+   const defaultCenter = {
+      lat: -33.489524621879774,
+      lng: -70.67266277454323
+   };
 
    const [selectedMarker, setSelectedMarker] = useState(null);
    const [markers, setMarkers] = useState([]);
    const [areas, setAreas] = useState([]);
    const [selectedArea, setSelectedArea] = useState(null);
 
-   // Synchronize map component to screen rendering
    const { isLoaded, loadError } = useLoadScript({
-      googleMapsApiKey: API_KEY,
+      googleMapsApiKey: apiKey,
       libraries
    });
 
@@ -34,13 +30,18 @@ export const MapContainer = () => {
                id: location.id,
                position: { lat: location.lat, lng: location.lng },
                onClick: () => setSelectedMarker(location),
+               name: location.name, // Add name property
+               description: location.description, // Add description property
             }))
          );
          setAreas(polygons);
       }
-   }, [isLoaded, loadError]);
+   }, [isLoaded, loadError, locations, polygons]);
 
-   // Handler function to select areas
+   const handleMarkerClick = (marker) => {
+      setSelectedMarker(marker);
+   };
+
    const handlePolygonClick = (polygon) => {
       setSelectedArea(polygon);
    };
@@ -55,19 +56,17 @@ export const MapContainer = () => {
             zoom={13}
             center={defaultCenter}
          >
-
-            {/* Display markers */}
             {markers.map(marker => (
                <Marker
                   key={marker.id}
                   position={marker.position}
-                  onClick={marker.onClick}
+                  onClick={() => handleMarkerClick(marker)}
                />
             ))}
-            {/* Display info when clicked */}
-            {selectedMarker ? (
+            {/* // Display info when clicked */}
+            {selectedMarker && (
                <InfoWindow
-                  position={{ lat: selectedMarker.lat, lng: selectedMarker.lng }}
+                  position={selectedMarker.position}
                   onCloseClick={() => setSelectedMarker(null)}
                >
                   <div>
@@ -75,13 +74,10 @@ export const MapContainer = () => {
                      <p>{selectedMarker.description}</p>
                   </div>
                </InfoWindow>
-            ) : null}
-
-            {/* Display areas */}
+            )}
             {areas.map(area => (
-               <>
+               <React.Fragment key={area.id}>
                   <Polygon
-                     key={area.id}
                      paths={area.paths}
                      onClick={() => handlePolygonClick(area)}
                      options={{
@@ -92,7 +88,6 @@ export const MapContainer = () => {
                         strokeWeight: 1,
                      }}
                   />
-                  {/* Display info when clicked */}
                   {selectedArea === area && (
                      <InfoWindow
                         position={area.paths[0]}
@@ -104,9 +99,8 @@ export const MapContainer = () => {
                         </div>
                      </InfoWindow>
                   )}
-               </>
+               </React.Fragment>
             ))}
-
          </GoogleMap>
       </div>
    );
