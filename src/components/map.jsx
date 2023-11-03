@@ -85,7 +85,6 @@ export const MapContainer = ({ apiKey, locations, polygons }) => {
             center={center}
             onLoad={ref => setMap(ref)}
             onClick={onMapClick}
-            options={{gestureHandling: "greedy", cursor: "default"}}
          >
             <StandaloneSearchBox
                onLoad={onSearchBoxLoaded}
