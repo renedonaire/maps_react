@@ -8,10 +8,6 @@ export const MapContainer = ({ apiKey, locations, polygons }) => {
       width: "100vw",
       height: "100vh"
    };
-   // const defaultCenter = {
-   //    lat: -33.489524621879774,
-   //    lng: -70.67266277454323
-   // };
 
    const [selectedMarker, setSelectedMarker] = useState(null);
    const [markers, setMarkers] = useState([]);
@@ -20,6 +16,19 @@ export const MapContainer = ({ apiKey, locations, polygons }) => {
 
    const [map, setMap] = useState(null);
    const [center, setCenter] = useState({ lat: -33.489524621879774, lng: -70.67266277454323 }); // initial location
+
+   const onMapClick = (event) => {
+      setMarkers(current => [
+         ...current,
+         {
+            id: event.key,
+            position: { lat: event.latLng.lat(), lng: event.latLng.lng() },
+            onClick: () => setSelectedMarker(),
+            name: event.latLng.lng(), // Add name property
+            description: event.latLng.lng(), // Add description property
+         }
+      ]);
+   };
 
    const [searchBox, setSearchBox] = useState(null);
    const onSearchBoxLoaded = ref => setSearchBox(ref);
@@ -75,6 +84,8 @@ export const MapContainer = ({ apiKey, locations, polygons }) => {
             zoom={13}
             center={center}
             onLoad={ref => setMap(ref)}
+            onClick={onMapClick}
+            options={{gestureHandling: "greedy", cursor: "default"}}
          >
             <StandaloneSearchBox
                onLoad={onSearchBoxLoaded}
