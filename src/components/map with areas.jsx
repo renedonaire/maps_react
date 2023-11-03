@@ -1,23 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { useLoadScript, GoogleMap, Marker, InfoWindow } from '@react-google-maps/api';
+import { useLoadScript, GoogleMap, Marker, InfoWindow, Polygon } from '@react-google-maps/api';
 import { StandaloneSearchBox } from '@react-google-maps/api';
 
-// Contenedor para el mapa, copn librería de búsqueda y tamaño explícito
-export const MapContainer = ({ apiKey, locations }) => {
+export const MapContainer = ({ apiKey, locations, polygons }) => {
    const libraries = ["places"];
    const mapContainerStyle = {
       width: "100vw",
       height: "100vh"
    };
 
-   // Estados de React
    const [selectedMarker, setSelectedMarker] = useState(null);
    const [markers, setMarkers] = useState([]);
+   const [areas, setAreas] = useState([]);
+   const [selectedArea, setSelectedArea] = useState(null);
    const [map, setMap] = useState(null);
    const [center, setCenter] = useState({ lat: -33.489524621879774, lng: -70.67266277454323 });
-   const [searchBox, setSearchBox] = useState(null);
 
-   // Función para agregar marcadores al hacer click en el mapa
    const onMapClick = (event) => {
       setMarkers(current => [
          ...current,
@@ -25,13 +23,13 @@ export const MapContainer = ({ apiKey, locations }) => {
             id: event.key,
             position: { lat: event.latLng.lat(), lng: event.latLng.lng() },
             onClick: () => setSelectedMarker(),
-            name: event.latLng.lng(),
-            description: event.latLng.lng(),
+            name: event.latLng.lng(), // Add name property
+            description: event.latLng.lng(), // Add description property
          }
       ]);
    };
 
-   // Captura la búsqueda de lugares y re enfoca mapa
+   const [searchBox, setSearchBox] = useState(null);
    const onSearchBoxLoaded = ref => setSearchBox(ref);
    const onPlacesChanged = () => {
       const places = searchBox.getPlaces();
@@ -46,13 +44,12 @@ export const MapContainer = ({ apiKey, locations }) => {
       }
    };
 
-   // Carga las librerías una vez que el mapa está renderizado
    const { isLoaded, loadError } = useLoadScript({
       googleMapsApiKey: apiKey,
       libraries
    });
 
-   // Carga los marcadores
+   // Load markers and areas
    useEffect(() => {
       if (isLoaded && !loadError) {
          setMarkers(
@@ -64,15 +61,18 @@ export const MapContainer = ({ apiKey, locations }) => {
                description: location.description, // Add description property
             }))
          );
+         setAreas(polygons);
       }
-   }, [isLoaded, loadError, locations]);
+   }, [isLoaded, loadError, locations, polygons]);
 
-   // Función que maneja el click en los marcadores
    const handleMarkerClick = (marker) => {
       setSelectedMarker(marker);
    };
 
-   // Indica si hubo error
+   const handlePolygonClick = (polygon) => {
+      setSelectedArea(polygon);
+   };
+
    if (loadError) return "Error loading maps";
    if (!isLoaded) return "Loading Maps";
 
@@ -85,8 +85,6 @@ export const MapContainer = ({ apiKey, locations }) => {
             onLoad={ref => setMap(ref)}
             onClick={onMapClick}
          >
-
-            {/* Caja de búsqueda */}
             <StandaloneSearchBox
                onLoad={onSearchBoxLoaded}
                onPlacesChanged={onPlacesChanged}
@@ -97,8 +95,6 @@ export const MapContainer = ({ apiKey, locations }) => {
                   style={{ boxSizing: 'border-box', border: '1px solid transparent', width: '240px', height: '32px', marginTop: '27px', padding: '0 12px', borderRadius: '3px', boxShadow: '0 2px 6px rgba(0, 0, 0, 0.3)', fontSize: '14px', outline: 'none', textOverflow: 'ellipses', position: "absolute", left: "50%", marginLeft: "-120px" }}
                />
             </StandaloneSearchBox>
-
-            {/* Marcadores */}
             {markers.map(marker => (
                <Marker
                   key={marker.id}
@@ -106,8 +102,7 @@ export const MapContainer = ({ apiKey, locations }) => {
                   onClick={() => handleMarkerClick(marker)}
                />
             ))}
-
-            {/* // Muestra info cuando se clickea */}
+            {/* // Display info when clicked */}
             {selectedMarker && (
                <InfoWindow
                   position={selectedMarker.position}
@@ -119,7 +114,32 @@ export const MapContainer = ({ apiKey, locations }) => {
                   </div>
                </InfoWindow>
             )}
-
+            {areas.map(area => (
+               <React.Fragment key={area.id}>
+                  <Polygon
+                     paths={area.paths}
+                     onClick={() => handlePolygonClick(area)}
+                     options={{
+                        fillColor: selectedArea === area ? 'blue' : 'red',
+                        fillOpacity: 0.5,
+                        strokeColor: 'black',
+                        strokeOpacity: 1,
+                        strokeWeight: 1,
+                     }}
+                  />
+                  {selectedArea === area && (
+                     <InfoWindow
+                        position={area.paths[0]}
+                        onCloseClick={() => setSelectedArea(null)}
+                     >
+                        <div>
+                           <h2>{area.name}</h2>
+                           <p>{area.description}</p>
+                        </div>
+                     </InfoWindow>
+                  )}
+               </React.Fragment>
+            ))}
          </GoogleMap>
       </div>
    );
