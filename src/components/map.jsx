@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLoadScript, GoogleMap, Marker, InfoWindow, Polygon } from '@react-google-maps/api';
+import { StandaloneSearchBox } from '@react-google-maps/api';
 
 export const MapContainer = ({ apiKey, locations, polygons }) => {
    const libraries = ["places"];
@@ -7,15 +8,33 @@ export const MapContainer = ({ apiKey, locations, polygons }) => {
       width: "100vw",
       height: "100vh"
    };
-   const defaultCenter = {
-      lat: -33.489524621879774,
-      lng: -70.67266277454323
-   };
+   // const defaultCenter = {
+   //    lat: -33.489524621879774,
+   //    lng: -70.67266277454323
+   // };
 
    const [selectedMarker, setSelectedMarker] = useState(null);
    const [markers, setMarkers] = useState([]);
    const [areas, setAreas] = useState([]);
    const [selectedArea, setSelectedArea] = useState(null);
+
+   const [map, setMap] = useState(null);
+   const [center, setCenter] = useState({ lat: -33.489524621879774, lng: -70.67266277454323 }); // initial location
+
+   const [searchBox, setSearchBox] = useState(null);
+   const onSearchBoxLoaded = ref => setSearchBox(ref);
+   const onPlacesChanged = () => {
+      const places = searchBox.getPlaces();
+
+      if (places && places.length > 0) {
+         const location = places[0].geometry.location;
+         setCenter({
+            lat: location.lat(),
+            lng: location.lng()
+         });
+         map.panTo(location);
+      }
+   };
 
    const { isLoaded, loadError } = useLoadScript({
       googleMapsApiKey: apiKey,
@@ -54,8 +73,19 @@ export const MapContainer = ({ apiKey, locations, polygons }) => {
          <GoogleMap
             mapContainerStyle={mapContainerStyle}
             zoom={13}
-            center={defaultCenter}
+            center={center}
+            onLoad={ref => setMap(ref)}
          >
+            <StandaloneSearchBox
+               onLoad={onSearchBoxLoaded}
+               onPlacesChanged={onPlacesChanged}
+            >
+               <input
+                  type="text"
+                  placeholder="Search location"
+                  style={{ boxSizing: 'border-box', border: '1px solid transparent', width: '240px', height: '32px', marginTop: '27px', padding: '0 12px', borderRadius: '3px', boxShadow: '0 2px 6px rgba(0, 0, 0, 0.3)', fontSize: '14px', outline: 'none', textOverflow: 'ellipses', position: "absolute", left: "50%", marginLeft: "-120px" }}
+               />
+            </StandaloneSearchBox>
             {markers.map(marker => (
                <Marker
                   key={marker.id}
